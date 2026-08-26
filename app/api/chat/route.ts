@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 
-const HERMES_URL = process.env.HERMES_URL || 'http://[2a02:c207:2301:7280::1]:8642/v1/chat/completions';
+const HERMES_URL = process.env.HERMES_URL || 'https://hermes.siriko.fr/v1/chat/completions';
 const HERMES_API_KEY = process.env.HERMES_API_KEY || '';
 
 export async function POST(req: NextRequest) {
