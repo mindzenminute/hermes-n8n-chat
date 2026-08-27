@@ -103,67 +103,84 @@ export default function Chat() {
     }
   };
 
+  const renderCodeBlock = (code: string, lang: string, key: string | number) => (
+    <div key={key} style={{ margin: '8px 0' }}>
+      <div style={{
+        background: '#1e293b',
+        borderRadius: '8px 8px 0 0',
+        padding: '6px 12px',
+        fontSize: '11px',
+        color: '#94a3b8',
+        fontFamily: 'monospace',
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <span>{lang}</span>
+        <button
+          onClick={() => navigator.clipboard.writeText(code)}
+          style={{
+            background: 'transparent',
+            border: '1px solid #475569',
+            color: '#94a3b8',
+            padding: '2px 8px',
+            borderRadius: '4px',
+            fontSize: '10px',
+            cursor: 'pointer'
+          }}
+        >
+          Copier
+        </button>
+      </div>
+      <pre style={{
+        background: '#0f172a',
+        color: '#e2e8f0',
+        padding: '12px',
+        borderRadius: '0 0 8px 8px',
+        overflowX: 'auto',
+        fontSize: '13px',
+        margin: 0,
+        fontFamily: '"Fira Code", "JetBrains Mono", monospace',
+        lineHeight: '1.5'
+      }}>
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
+
   const renderContent = (content: string) => {
-    // Détecte les blocs de code
+    // Split sur les blocs markdown ``` d'abord
     const parts = content.split(/(```[\s\S]*?```)/g);
+    
     return parts.map((part, i) => {
       if (part.startsWith('```')) {
         const match = part.match(/```(\w+)?\n?([\s\S]*?)```/);
         const lang = match?.[1] || '';
         const code = match?.[2] || part.replace(/```/g, '');
-        return (
-          <div key={i} style={{ margin: '8px 0' }}>
-            <div style={{
-              background: '#1e293b',
-              borderRadius: '8px 8px 0 0',
-              padding: '6px 12px',
-              fontSize: '11px',
-              color: '#94a3b8',
-              fontFamily: 'monospace',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <span>{lang || 'code'}</span>
-              <button
-                onClick={() => navigator.clipboard.writeText(code.trim())}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid #475569',
-                  color: '#94a3b8',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  fontSize: '10px',
-                  cursor: 'pointer'
-                }}
-              >
-                Copier
-              </button>
-            </div>
-            <pre style={{
-              background: '#0f172a',
-              color: '#e2e8f0',
-              padding: '12px',
-              borderRadius: '0 0 8px 8px',
-              overflowX: 'auto',
-              fontSize: '13px',
-              margin: 0,
-              fontFamily: '"Fira Code", "JetBrains Mono", monospace',
-              lineHeight: '1.5'
-            }}>
-              <code>{code.trim()}</code>
-            </pre>
-          </div>
-        );
+        return renderCodeBlock(code.trim(), lang || 'code', i);
       }
-      // Texte simple avec support des retours à la ligne
-      return (
-        <span key={i} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-          {part}
-        </span>
-      );
+      
+      // Cherche les JSON bruts (non entourés de ```)
+      // Regex qui capture les blocs { ... } de plus de 50 caractères (pour éviter les faux positifs)
+      const jsonRegex = /(\{[\s\S]{50,?\})/g;
+      const textParts = part.split(jsonRegex);
+      
+      return textParts.map((textPart, j) => {
+        const key = `${i}-${j}`;
+        const trimmed = textPart.trim();
+        
+        if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+          try {
+            JSON.parse(trimmed);
+            return renderCodeBlock(trimmed, 'json', key);
+          } catch {
+            return <span key={key} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{textPart}</span>;
+          }
+        }
+        return <span key={key} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{textPart}</span>;
+      });
     });
   };
 
